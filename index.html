@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Création de Facture - Réparation Téléphone</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; color: #333; }
+        .container { display: flex; gap: 30px; }
+        
+        /* Style du formulaire (zone de saisie) */
+        .form-section { width: 35%; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd; }
+        .form-section h2 { margin-top: 0; font-size: 18px; color: #0056b3; }
+        label { font-weight: bold; display: block; margin-top: 10px; font-size: 14px; }
+        input, textarea { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { margin-top: 20px; width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+
+        /* Style de la facture (zone d'aperçu) */
+        .invoice-section { width: 65%; padding: 40px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: #333; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .total-section { text-align: right; margin-top: 20px; font-size: 1.2em; }
+        
+        /* Rendu pour l'impression (cache le formulaire et met la facture en plein écran) */
+        @media print {
+            body { margin: 0; }
+            .form-section, button { display: none !important; }
+            .invoice-section { width: 100%; border: none; box-shadow: none; padding: 0; }
+            .container { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="form-section">
+        <h2>Détails de la réparation</h2>
+        
+        <label>Nom du Client</label>
+        <input type="text" id="clientName" placeholder="Ex: Jean Dupont" oninput="updateInvoice()">
+        
+        <label>Modèle du Téléphone</label>
+        <input type="text" id="phoneModel" placeholder="Ex: iPhone 13 Pro" oninput="updateInvoice()">
+        
+        <label>Numéro IMEI</label>
+        <input type="text" id="imei" placeholder="Ex: 359012345678901" oninput="updateInvoice()">
+        
+        <label>Description du problème / Réparation</label>
+        <textarea id="description" rows="3" placeholder="Ex: Remplacement écran LCD et batterie" oninput="updateInvoice()"></textarea>
+        
+        <label>Bonus réparation</label>
+        <input type="number" id="partsCost" placeholder="0" oninput="updateInvoice()">
+        
+        <label>Prix</label>
+        <input type="number" id="laborCost" placeholder="0" oninput="updateInvoice()">
+
+        <label>Date de la facture</label>
+        <input type="text" id="invoiceDate" placeholder="Ex: 19/02/2026" oninput="updateInvoice()">
+
+        <button onclick="window.print()">🖨️ Imprimer / Sauvegarder en PDF</button>
+    </div>
+
+    <div class="invoice-section">
+        <div class="header">
+            <div>
+                <h1>FACTURE</h1>
+                <p><strong>NEL REPAIR</strong><br>60 RUE FRANCOIS IER<br>75008 Paris<br>Tel: 06 79 38 39 13</p>
+            </div>
+            <div style="text-align: right;">
+                <p><strong>Date :</strong> <span id="outDate">...</span></p>
+                <p><strong>Facture N° :</strong> <span id="outInvoiceNum">...</span></p>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div>
+                <h3>Facturé à :</h3>
+                <p id="outClientName">Nom du client</p>
+            </div>
+            <div>
+                <h3>Détails de l'appareil :</h3>
+                <p><strong>Modèle :</strong> <span id="outPhoneModel">-</span><br>
+                <strong>Numéro d'identification :</strong> <span id="outImei">-</span></p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Description de la réparation</th>
+                    <th style="width: 150px;">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="outDescription">Description...</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Bonus réparation (QUALI REPAR)</td>
+                    <td><span id="outPartsCost">0</span> €</td>
+                </tr>
+                <tr>
+                    <td>Prix</td>
+                    <td><span id="outLaborCost">0</span> €</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <p><strong>Total à payer : <span id="outTotal">0</span> €</strong></p>
+        </div>
+    </div>
+</div>
+
+<script>
+
+  // Initialisation au chargement de la page
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const dateDuJour = `${dd}/${mm}/${yyyy}`;
+    
+    // On met la date du jour par défaut dans le champ texte et sur la facture
+    document.getElementById('invoiceDate').value = dateDuJour;
+    document.getElementById('outDate').innerText = dateDuJour;
+    
+    // Génération d'un numéro de facture aléatoire
+    document.getElementById('outInvoiceNum').innerText = Math.floor(Math.random() * 10000) + 2024000;
+
+    // Fonction pour mettre à jour la facture en temps réel
+    function updateInvoice() {
+        // Mise à jour de la date (texte libre !)
+        document.getElementById('outDate').innerText = document.getElementById('invoiceDate').value || '...';
+
+        // Mise à jour des autres champs
+        document.getElementById('outClientName').innerText = document.getElementById('clientName').value || 'Nom du client';
+        document.getElementById('outPhoneModel').innerText = document.getElementById('phoneModel').value || '-';
+        document.getElementById('outImei').innerText = document.getElementById('imei').value || '-';
+        document.getElementById('outDescription').innerText = document.getElementById('description').value || 'Description...';
+        
+        let parts = parseFloat(document.getElementById('partsCost').value) || 0;
+        let labor = parseFloat(document.getElementById('laborCost').value) || 0;
+        
+        document.getElementById('outPartsCost').innerText = parts.toFixed(2);
+        document.getElementById('outLaborCost').innerText = labor.toFixed(2);
+        
+        let total = parts + labor;
+        document.getElementById('outTotal').innerText = total.toFixed(2);
+    }
+</script>
+
+</body>
+</html>
