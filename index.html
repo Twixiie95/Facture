@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Création de Facture - Réparation Téléphone</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; color: #333; }
         .container { display: flex; gap: 30px; }
@@ -25,33 +28,19 @@
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
         th { background-color: #f4f4f4; }
         .total-section { text-align: right; margin-top: 20px; font-size: 1.2em; }
-        
-        /* Rendu pour l'impression (cache le formulaire et met la facture en plein écran) */
-        @media print {
-            body { margin: 0; }
-            .form-section, button { display: none !important; }
-            .invoice-section { width: 100%; border: none; box-shadow: none; padding: 0; }
-            .container { display: block; }
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="form-section">
-        <h2>Détails de la réparation</h2>
+        <h2>Détails de la facture</h2>
         
+        <label>Date de la facture</label>
+        <input type="text" id="invoiceDate" placeholder="Ex: 27/02/2026" oninput="updateInvoice()">
+
         <label>Nom du Client</label>
         <input type="text" id="clientName" placeholder="Ex: Jean Dupont" oninput="updateInvoice()">
-
-        <label for="clientAdresse">Adresse :</label>
-        <input type="text" id="clientAdresse" placeholder="123 Rue de la République, 75001 Paris" oninput="updateInvoice()">
-
-        <label for="clientTelephone">Téléphone :</label>
-        <input type="tel" id="clientTelephone" placeholder="06 12 34 56 78" oninput="updateInvoice()">
-
-        <label for="clientEmail">E-mail :</label>
-        <input type="email" id="clientEmail" placeholder="client@exemple.com" oninput="updateInvoice()">
         
         <label>Modèle du Téléphone</label>
         <input type="text" id="phoneModel" placeholder="Ex: iPhone 13 Pro" oninput="updateInvoice()">
@@ -59,26 +48,22 @@
         <label>Numéro IMEI</label>
         <input type="text" id="imei" placeholder="Ex: 359012345678901" oninput="updateInvoice()">
         
-        <label>Description du problème / Réparation</label>
-        <textarea id="description" rows="3" placeholder="Ex: Remplacement écran LCD et batterie" oninput="updateInvoice()"></textarea>
-        
-        <label>Bonus réparation</label>
-        <input type="number" id="partsCost" placeholder="0" oninput="updateInvoice()">
-        
-        <label>Prix</label>
-        <input type="number" id="laborCost" placeholder="0" oninput="updateInvoice()">
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
 
-        <label>Date de la facture</label>
-        <input type="text" id="invoiceDate" placeholder="Ex: 19/02/2026" oninput="updateInvoice()">
+        <label>Description de la réparation</label>
+        <textarea id="description" rows="3" placeholder="Ex: Remplacement écran LCD" oninput="updateInvoice()"></textarea>
+        
+        <label>Prix de la réparation (€)</label>
+        <input type="number" id="price" placeholder="0" oninput="updateInvoice()">
 
-        <button onclick="window.print()">🖨️ Imprimer / Sauvegarder en PDF</button>
+        <button onclick="downloadPDF()">📥 Télécharger le PDF</button>
     </div>
 
     <div class="invoice-section">
         <div class="header">
             <div>
                 <h1>FACTURE</h1>
-                <p><strong>NEL REPAIR</strong><br>60 RUE FRANCOIS IER<br>75008 Paris<br>Tel: 06 79 38 39 13</p>
+                <p><strong>NEL REPAIR</strong><br>60 RUE FRANCOIS IER<br>75008 Paris<br>Tel: 06 79 38 39 13 <br> Siret : 94152116300019</p>
             </div>
             <div style="text-align: right;">
                 <p><strong>Date :</strong> <span id="outDate">...</span></p>
@@ -90,15 +75,11 @@
             <div>
                 <h3>Facturé à :</h3>
                 <p id="outClientName">Nom du client</p>
-                <p><span id="affichageAdresse"></span></p>
-                <p><span id="affichageTelephone"></span></p>
-                <p><span id="affichageEmail"></span></p>
-
             </div>
             <div>
                 <h3>Détails de l'appareil :</h3>
                 <p><strong>Modèle :</strong> <span id="outPhoneModel">-</span><br>
-                <strong>Numéro d'identification :</strong> <span id="outImei">-</span></p>
+                <strong>IMEI :</strong> <span id="outImei">-</span></p>
             </div>
         </div>
 
@@ -112,67 +93,79 @@
             <tbody>
                 <tr>
                     <td id="outDescription">Description...</td>
-                    <td id="outPrix">0</td>
-                </tr>
-                <tr>
-                    <td>Bonus réparation (QUALI REPAR)</td>
-                    <td><span id="outPartsCost">0</span> €</td>
+                    <td><span id="outPrice">0.00</span> €</td>
                 </tr>
             </tbody>
         </table>
 
         <div class="total-section">
-            <p><strong>Total à payer : <span id="outTotal">0</span> €</strong></p>
+            <p><strong>Total à payer : <span id="outTotal">0.00</span> €</strong></p>
         </div>
     </div>
 </div>
 
 <script>
-
-  // Initialisation au chargement de la page
+    // Initialisation de la date du jour
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     const dateDuJour = `${dd}/${mm}/${yyyy}`;
     
-    // On met la date du jour par défaut dans le champ texte et sur la facture
+    // On remplit les champs par défaut
     document.getElementById('invoiceDate').value = dateDuJour;
     document.getElementById('outDate').innerText = dateDuJour;
-    
-    // Génération d'un numéro de facture aléatoire
     document.getElementById('outInvoiceNum').innerText = Math.floor(Math.random() * 10000) + 2024000;
 
-    // Fonction pour mettre à jour la facture en temps réel
+    // Fonction de mise à jour en temps réel
     function updateInvoice() {
-        // Mise à jour de la date (texte libre !)
         document.getElementById('outDate').innerText = document.getElementById('invoiceDate').value || '...';
-
-        // Mise à jour des autres champs
         document.getElementById('outClientName').innerText = document.getElementById('clientName').value || 'Nom du client';
         document.getElementById('outPhoneModel').innerText = document.getElementById('phoneModel').value || '-';
         document.getElementById('outImei').innerText = document.getElementById('imei').value || '-';
+        
         document.getElementById('outDescription').innerText = document.getElementById('description').value || 'Description...';
-        document.getElementById('outPrix').innerText = document.getElementById('Prix').value || '0';
-        // Récupération et affichage des nouvelles données
-        document.getElementById('affichageAdresse').innerText = document.getElementById('clientAdresse').value;
-        document.getElementById('affichageTelephone').innerText = document.getElementById('clientTelephone').value;
-        document.getElementById('affichageEmail').innerText = document.getElementById('clientEmail').value;
         
-        let parts = parseFloat(document.getElementById('partsCost').value) || 0;
-        let labor = parseFloat(document.getElementById('laborCost').value) || 0;
+        // On récupère le prix saisi
+        let price = parseFloat(document.getElementById('price').value) || 0;
         
-        document.getElementById('outPartsCost').innerText = parts.toFixed(2);
-        document.getElementById('outLaborCost').innerText = labor.toFixed(2);
+        // On met à jour la ligne de la facture et le total
+        document.getElementById('outPrice').innerText = price.toFixed(2);
+        document.getElementById('outTotal').innerText = price.toFixed(2);
+    }
+
+    // Fonction de téléchargement du PDF pleine page
+    function downloadPDF() {
+        const element = document.querySelector('.invoice-section');
+        const originalStyle = element.getAttribute('style') || '';
         
-        let total = parts + labor;
-        document.getElementById('outTotal').innerText = total.toFixed(2);
+        // On adapte temporairement au format A4
+        element.style.width = '800px';
+        element.style.minHeight = '1130px';
+        element.style.margin = '0';
+        element.style.boxShadow = 'none';
+        element.style.border = 'none';
+        element.style.padding = '50px';
+        element.style.backgroundColor = 'white';
+
+        const invoiceNum = document.getElementById('outInvoiceNum').innerText;
+        let clientName = document.getElementById('clientName').value || 'Client';
+        clientName = clientName.replace(/\s+/g, '_'); 
+        
+        const opt = {
+            margin:       0,
+            filename:     `Facture_${invoiceNum}_${clientName}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, windowWidth: 800 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            // On remet l'affichage normal
+            element.setAttribute('style', originalStyle);
+        });
     }
 </script>
 
 </body>
-
 </html>
-
-
-
