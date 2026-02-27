@@ -26,6 +26,9 @@
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
         th { background-color: #f4f4f4; }
         .total-section { text-align: right; margin-top: 20px; font-size: 1.2em; }
+        
+        /* Petit style pour les infos du client pour que ce soit aéré */
+        .client-info p { margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -37,17 +40,30 @@
         <label>Date de la facture</label>
         <input type="text" id="invoiceDate" placeholder="Ex: 27/02/2026" oninput="updateInvoice()">
 
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+        <h3 style="margin:0; font-size:16px;">Coordonnées du client</h3>
+
         <label>Nom du Client</label>
         <input type="text" id="clientName" placeholder="Ex: Jean Dupont" oninput="updateInvoice()">
+
+        <label>Adresse</label>
+        <input type="text" id="clientAddress" placeholder="Ex: 10 Rue de la Paix, 75000 Paris" oninput="updateInvoice()">
+
+        <label>Téléphone</label>
+        <input type="text" id="clientPhone" placeholder="Ex: 06 12 34 56 78" oninput="updateInvoice()">
+
+        <label>Email</label>
+        <input type="text" id="clientEmail" placeholder="Ex: jean.dupont@email.com" oninput="updateInvoice()">
         
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+        <h3 style="margin:0; font-size:16px;">Appareil et Réparation</h3>
+
         <label>Modèle du Téléphone</label>
         <input type="text" id="phoneModel" placeholder="Ex: iPhone 13 Pro" oninput="updateInvoice()">
         
         <label>Numéro IMEI</label>
         <input type="text" id="imei" placeholder="Ex: 359012345678901" oninput="updateInvoice()">
         
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
-
         <label>Description de la réparation</label>
         <textarea id="description" rows="3" placeholder="Ex: Remplacement écran LCD" oninput="updateInvoice()"></textarea>
         
@@ -73,9 +89,12 @@
         </div>
 
         <div class="info-grid">
-            <div>
+            <div class="client-info">
                 <h3>Facturé à :</h3>
-                <p id="outClientName">Nom du client</p>
+                <p><strong id="outClientName">Nom du client</strong></p>
+                <p id="outClientAddress" style="color: #555;">Adresse</p>
+                <p id="outClientPhone" style="color: #555;">Téléphone</p>
+                <p id="outClientEmail" style="color: #555;">Email</p>
             </div>
             <div>
                 <h3>Détails de l'appareil :</h3>
@@ -122,23 +141,30 @@
 
     function updateInvoice() {
         document.getElementById('outDate').innerText = document.getElementById('invoiceDate').value || '...';
+        
+        // Coordonnées du client
         document.getElementById('outClientName').innerText = document.getElementById('clientName').value || 'Nom du client';
+        
+        // On affiche les champs d'adresse, téléphone et email seulement s'ils sont remplis (ou on laisse le texte par défaut)
+        document.getElementById('outClientAddress').innerText = document.getElementById('clientAddress').value || 'Adresse du client';
+        document.getElementById('outClientPhone').innerText = document.getElementById('clientPhone').value || 'Téléphone du client';
+        document.getElementById('outClientEmail').innerText = document.getElementById('clientEmail').value || 'Email du client';
+
+        // Détails de l'appareil
         document.getElementById('outPhoneModel').innerText = document.getElementById('phoneModel').value || '-';
         document.getElementById('outImei').innerText = document.getElementById('imei').value || '-';
         document.getElementById('outDescription').innerText = document.getElementById('description').value || 'Description...';
         
-        // Calcul du prix principal
+        // Calcul des prix
         let priceText = document.getElementById('price').value.replace(',', '.');
         let price = parseFloat(priceText) || 0; 
         
-        // Calcul du bonus (peut être positif ou négatif)
         let bonusText = document.getElementById('bonus').value.replace(',', '.');
         let bonus = parseFloat(bonusText) || 0; 
 
         document.getElementById('outPrice').innerText = price.toFixed(2);
         document.getElementById('outBonus').innerText = bonus.toFixed(2);
         
-        // Le total additionne le prix et le bonus
         let total = price + bonus;
         document.getElementById('outTotal').innerText = total.toFixed(2);
     }
