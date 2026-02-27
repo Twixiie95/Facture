@@ -112,15 +112,11 @@
             <tbody>
                 <tr>
                     <td id="outDescription">Description...</td>
-                    <td>-</td>
+                    <td id="outPrix">0</td>
                 </tr>
                 <tr>
                     <td>Bonus réparation (QUALI REPAR)</td>
                     <td><span id="outPartsCost">0</span> €</td>
-                </tr>
-                <tr>
-                    <td>Prix</td>
-                    <td><span id="outLaborCost">0</span> €</td>
                 </tr>
             </tbody>
         </table>
@@ -157,6 +153,7 @@
         document.getElementById('outPhoneModel').innerText = document.getElementById('phoneModel').value || '-';
         document.getElementById('outImei').innerText = document.getElementById('imei').value || '-';
         document.getElementById('outDescription').innerText = document.getElementById('description').value || 'Description...';
+        document.getElementById('outPrix').innerText = document.getElementById('Prix').value || '0';
         // Récupération et affichage des nouvelles données
         document.getElementById('affichageAdresse').innerText = document.getElementById('clientAdresse').value;
         document.getElementById('affichageTelephone').innerText = document.getElementById('clientTelephone').value;
@@ -176,5 +173,6 @@
 </body>
 
 </html>
+
 
 
