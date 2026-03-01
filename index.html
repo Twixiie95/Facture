@@ -27,4 +27,199 @@
         th { background-color: #f4f4f4; }
         
         /* Nouveau style pour le bloc des totaux */
-        .total-block { margin-top: 20px; margin-left: auto; width: 300px; font-size:
+        .total-block { margin-top: 20px; margin-left: auto; width: 300px; font-size: 15px; }
+        .total-line { display: flex; justify-content: space-between; padding: 5px 0; }
+        .total-line.bold { font-weight: bold; }
+        .total-line.highlight { font-size: 1.2em; font-weight: bold; border-top: 2px solid #333; margin-top: 10px; padding-top: 10px; }
+        
+        .client-info p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="form-section">
+        <h2>Détails de la facture</h2>
+        
+        <label>Date de la facture</label>
+        <input type="text" id="invoiceDate" placeholder="Ex: 27/02/2026" oninput="updateInvoice()">
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+        <h3 style="margin:0; font-size:16px;">Coordonnées du client</h3>
+
+        <label>Nom du Client</label>
+        <input type="text" id="clientName" placeholder="Ex: Jean Dupont" oninput="updateInvoice()">
+
+        <label>Adresse</label>
+        <input type="text" id="clientAddress" placeholder="Ex: 10 Rue de la Paix, 75000 Paris" oninput="updateInvoice()">
+
+        <label>Téléphone</label>
+        <input type="text" id="clientPhone" placeholder="Ex: 06 12 34 56 78" oninput="updateInvoice()">
+
+        <label>Email</label>
+        <input type="text" id="clientEmail" placeholder="Ex: jean.dupont@email.com" oninput="updateInvoice()">
+        
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+        <h3 style="margin:0; font-size:16px;">Appareil et Réparation</h3>
+
+        <label>Modèle du Téléphone</label>
+        <input type="text" id="phoneModel" placeholder="Ex: iPhone 13 Pro" oninput="updateInvoice()">
+        
+        <label>Numéro IMEI</label>
+        <input type="text" id="imei" placeholder="Ex: 359012345678901" oninput="updateInvoice()">
+        
+        <label>Description de la réparation</label>
+        <textarea id="description" rows="3" placeholder="Ex: Remplacement écran LCD" oninput="updateInvoice()"></textarea>
+        
+        <label>Prix de la réparation HT (€)</label>
+        <input type="text" id="price" placeholder="Ex: 75,00" oninput="updateInvoice()">
+
+        <label>Bonus Réparation QualiRepar (€)</label>
+        <input type="text" id="bonus" placeholder="Ex: -25,00" oninput="updateInvoice()">
+
+        <button onclick="downloadPDF()">📥 Télécharger le PDF</button>
+    </div>
+
+    <div class="invoice-section">
+        <div class="header">
+            <div>
+                <h1>FACTURE</h1>
+                <p><strong>Ton Entreprise de Réparation</strong><br>123 Rue de la Technologie<br>75000 Paris<br>Tel: 01 23 45 67 89</p>
+            </div>
+            <div style="text-align: right;">
+                <p><strong>Date :</strong> <span id="outDate">...</span></p>
+                <p><strong>Facture N° :</strong> <span id="outInvoiceNum">...</span></p>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="client-info">
+                <h3>Facturé à :</h3>
+                <p><strong id="outClientName">Nom du client</strong></p>
+                <p id="outClientAddress" style="color: #555;">Adresse</p>
+                <p id="outClientPhone" style="color: #555;">Téléphone</p>
+                <p id="outClientEmail" style="color: #555;">Email</p>
+            </div>
+            <div>
+                <h3>Détails de l'appareil :</h3>
+                <p><strong>Modèle :</strong> <span id="outPhoneModel">-</span><br>
+                <strong>IMEI :</strong> <span id="outImei">-</span></p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Description de la réparation</th>
+                    <th style="width: 150px; text-align: right;">Montant HT</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="outDescription">Description...</td>
+                    <td style="text-align: right;"><span id="outPriceHT">0.00</span> €</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="total-block">
+            <div class="total-line">
+                <span>Total HT :</span>
+                <span><span id="outTotalHT">0.00</span> €</span>
+            </div>
+            <div class="total-line">
+                <span>TVA (20%) :</span>
+                <span><span id="outTVA">0.00</span> €</span>
+            </div>
+            <div class="total-line bold">
+                <span>Total TTC :</span>
+                <span><span id="outTotalTTC">0.00</span> €</span>
+            </div>
+            <div class="total-line" style="color: #d9534f;">
+                <span>Bonus QualiRepar :</span>
+                <span><span id="outBonus">0.00</span> €</span>
+            </div>
+            <div class="total-line highlight">
+                <span>Net à payer :</span>
+                <span><span id="outTotalFinal">0.00</span> €</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const dateDuJour = `${dd}/${mm}/${yyyy}`;
+    
+    document.getElementById('invoiceDate').value = dateDuJour;
+    document.getElementById('outDate').innerText = dateDuJour;
+    document.getElementById('outInvoiceNum').innerText = Math.floor(Math.random() * 10000) + 2024000;
+
+    function updateInvoice() {
+        document.getElementById('outDate').innerText = document.getElementById('invoiceDate').value || '...';
+        
+        document.getElementById('outClientName').innerText = document.getElementById('clientName').value || 'Nom du client';
+        document.getElementById('outClientAddress').innerText = document.getElementById('clientAddress').value || 'Adresse du client';
+        document.getElementById('outClientPhone').innerText = document.getElementById('clientPhone').value || 'Téléphone du client';
+        document.getElementById('outClientEmail').innerText = document.getElementById('clientEmail').value || 'Email du client';
+
+        document.getElementById('outPhoneModel').innerText = document.getElementById('phoneModel').value || '-';
+        document.getElementById('outImei').innerText = document.getElementById('imei').value || '-';
+        document.getElementById('outDescription').innerText = document.getElementById('description').value || 'Description...';
+        
+        // 1. Récupération des valeurs tapées
+        let priceText = document.getElementById('price').value.replace(',', '.');
+        let priceHT = parseFloat(priceText) || 0; 
+        
+        let bonusText = document.getElementById('bonus').value.replace(',', '.');
+        let bonus = parseFloat(bonusText) || 0; 
+
+        // 2. Calculs de la TVA et des Totaux
+        let tva = priceHT * 0.20;       // Calcul de 20%
+        let priceTTC = priceHT + tva;   // HT + TVA
+        let finalTotal = priceTTC + bonus; // TTC - Bonus (le bonus étant tapé en négatif)
+
+        // 3. Affichage sur la facture
+        document.getElementById('outPriceHT').innerText = priceHT.toFixed(2);
+        document.getElementById('outTotalHT').innerText = priceHT.toFixed(2);
+        document.getElementById('outTVA').innerText = tva.toFixed(2);
+        document.getElementById('outTotalTTC').innerText = priceTTC.toFixed(2);
+        document.getElementById('outBonus').innerText = bonus.toFixed(2);
+        document.getElementById('outTotalFinal').innerText = finalTotal.toFixed(2);
+    }
+
+    function downloadPDF() {
+        const element = document.querySelector('.invoice-section');
+        const originalStyle = element.getAttribute('style') || '';
+        
+        element.style.width = '800px';
+        element.style.minHeight = '1130px';
+        element.style.margin = '0';
+        element.style.boxShadow = 'none';
+        element.style.border = 'none';
+        element.style.padding = '50px';
+        element.style.backgroundColor = 'white';
+
+        const invoiceNum = document.getElementById('outInvoiceNum').innerText;
+        let clientName = document.getElementById('clientName').value || 'Client';
+        clientName = clientName.replace(/\s+/g, '_'); 
+        
+        const opt = {
+            margin:       0,
+            filename:     `Facture_${invoiceNum}_${clientName}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, windowWidth: 800 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.setAttribute('style', originalStyle);
+        });
+    }
+</script>
+
+</body>
+</html>
